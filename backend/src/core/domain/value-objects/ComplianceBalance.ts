@@ -76,8 +76,8 @@ export class ComplianceBalance {
 
   /**
    * Check if an amount can be applied to this compliance balance
-   * For deficits: amount can be applied if positive
-   * For surpluses: cannot apply (already positive)
+   * Can only apply to deficits (value < 0)
+   * Zero and positive balances cannot have amounts applied
    * @param amount Amount to apply (must be positive)
    * @returns true if amount can be applied
    */
@@ -90,8 +90,9 @@ export class ComplianceBalance {
       return false;
     }
 
-    // Can only apply to deficits
-    if (this.isSurplus()) {
+    // Can only apply to deficits (value < 0)
+    // Zero and positive balances reject applications
+    if (!this.isDeficit()) {
       return false;
     }
 

@@ -69,6 +69,18 @@ export class ComparisonController {
           });
           return;
         }
+
+        // Validate year range before creating Year value object
+        const MIN_YEAR = 2000;
+        const MAX_YEAR = 2100;
+        if (year < MIN_YEAR || year > MAX_YEAR) {
+          res.status(400).json({
+            error: "Invalid year",
+            message: `Year must be between ${MIN_YEAR} and ${MAX_YEAR}`,
+          });
+          return;
+        }
+
         baselineRoute = await this.routeRepository.findBaseline(Year.create(year));
       } else {
         baselineRoute = allRoutes.find((route) => route.getIsBaseline());
