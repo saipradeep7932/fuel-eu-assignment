@@ -21,12 +21,12 @@ import { Year } from "../../../core/domain/value-objects/Year";
  * This is a thin controller with no business logic.
  */
 export class BankingController {
-  private readonly getComplianceBalance: GetComplianceBalance;
+  private readonly getComplianceBalanceUseCase: GetComplianceBalance;
   private readonly bankSurplus: BankSurplus;
   private readonly applyBanked: ApplyBanked;
 
   constructor(private readonly complianceRepository: ComplianceRepository) {
-    this.getComplianceBalance = new GetComplianceBalance(complianceRepository);
+    this.getComplianceBalanceUseCase = new GetComplianceBalance(complianceRepository);
     this.bankSurplus = new BankSurplus(complianceRepository);
     this.applyBanked = new ApplyBanked(complianceRepository);
   }
@@ -71,7 +71,7 @@ export class BankingController {
       }
 
       const yearVO = Year.create(year);
-      const balance = await this.getComplianceBalance.execute(shipId, yearVO);
+      const balance = await this.getComplianceBalanceUseCase.execute(shipId, yearVO);
 
       if (!balance) {
         res.status(404).json({
@@ -237,7 +237,7 @@ export class BankingController {
       const yearVO = Year.create(year);
 
       // Get current compliance balance
-      const currentBalance = await this.getComplianceBalance.execute(shipId, yearVO);
+      const currentBalance = await this.getComplianceBalanceUseCase.execute(shipId, yearVO);
 
       if (!currentBalance) {
         res.status(404).json({

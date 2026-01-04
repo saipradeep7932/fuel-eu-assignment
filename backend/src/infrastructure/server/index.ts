@@ -3,7 +3,7 @@ import cors from "cors";
 import { setupRoutes } from "./routes";
 import { PostgresRouteRepository } from "../../adapters/outbound/db/PostgresRouteRepository";
 import { PostgresComplianceRepository } from "../../adapters/outbound/db/PostgresComplianceRepository";
-import { Pool } from "pg";
+import { getPool } from "../db/pgClient";
 
 const app = express();
 
@@ -16,10 +16,7 @@ app.get("/health", (_req, res) => {
 });
 
 // Initialize database connection
-// TODO: Replace with actual connection string from environment
-const db = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://localhost:5432/fueleu",
-});
+const db = getPool();
 
 // Initialize repositories
 const routeRepository = new PostgresRouteRepository(db);

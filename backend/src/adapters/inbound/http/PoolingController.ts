@@ -19,10 +19,10 @@ import { Year } from "../../../core/domain/value-objects/Year";
  * This is a thin controller with no business logic.
  */
 export class PoolingController {
-  private readonly createPool: CreatePool;
+  private readonly createPoolUseCase: CreatePool;
 
   constructor(private readonly complianceRepository: ComplianceRepository) {
-    this.createPool = new CreatePool(complianceRepository);
+    this.createPoolUseCase = new CreatePool(complianceRepository);
   }
 
   /**
@@ -93,7 +93,7 @@ export class PoolingController {
       }
 
       const yearVO = Year.create(year);
-      const result = await this.createPool.execute(yearVO, poolMembers);
+      const result = await this.createPoolUseCase.execute(yearVO, poolMembers);
 
       res.status(200).json({
         message: "Pool created successfully",
