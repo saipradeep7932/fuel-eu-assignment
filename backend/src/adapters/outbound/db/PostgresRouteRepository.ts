@@ -6,17 +6,18 @@ import { Year } from "../../../core/domain/value-objects/Year";
 
 /**
  * Database row structure for routes table
+ * Note: NUMERIC columns are returned as strings by node-postgres (pg)
  */
 interface RouteRow {
   id: number;
   route_id: string;
   vessel_type: string;
   fuel_type: string;
-  year: number;
-  ghg_intensity: number;
-  fuel_consumption: number;
-  distance: number;
-  total_emissions: number;
+  year: number | string; // INTEGER may come as number, but NUMERIC comes as string
+  ghg_intensity: string | number; // NUMERIC type returned as string
+  fuel_consumption: string | number; // NUMERIC type returned as string
+  distance: string | number; // NUMERIC type returned as string
+  total_emissions: string | number; // NUMERIC type returned as string
   is_baseline: boolean;
 }
 
@@ -154,17 +155,20 @@ export class PostgresRouteRepository implements RouteRepository {
 
   /**
    * Map database row to Route domain entity
+   * 
+   * Note: PostgreSQL NUMERIC columns are returned as strings by node-postgres (pg),
+   * so we must explicitly convert them to numbers before creating domain value objects.
    */
   private rowToRoute(row: RouteRow): Route {
     return Route.create(
       row.route_id,
       row.vessel_type,
       row.fuel_type,
-      row.year,
-      row.ghg_intensity,
-      row.fuel_consumption,
-      row.distance,
-      row.total_emissions,
+      Number(row.year), // Convert to number (INTEGER may come as number, but safer to convert)
+      Number(row.ghg_intensity), // NUMERIC returned as string, must convert
+      Number(row.fuel_consumption), // NUMERIC returned as string, must convert
+      Number(row.distance), // NUMERIC returned as string, must convert
+      Number(row.total_emissions), // NUMERIC returned as string, must convert
       row.is_baseline
     );
   }

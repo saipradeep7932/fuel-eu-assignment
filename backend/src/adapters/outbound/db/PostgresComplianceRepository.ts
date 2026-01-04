@@ -5,12 +5,13 @@ import { Year } from "../../../core/domain/value-objects/Year";
 
 /**
  * Database row structure for ship_compliance table
+ * Note: NUMERIC columns are returned as strings by node-postgres (pg)
  */
 interface ComplianceRow {
   id: number;
   ship_id: string;
-  year: number;
-  cb_gco2eq: number;
+  year: number | string; // INTEGER may come as number
+  cb_gco2eq: string | number; // NUMERIC type returned as string
 }
 
 /**
@@ -70,7 +71,8 @@ export class PostgresComplianceRepository implements ComplianceRepository {
       return null;
     }
 
-    return ComplianceBalance.create(result.rows[0].cb_gco2eq);
+    // PostgreSQL NUMERIC is returned as string, must convert to number
+    return ComplianceBalance.create(Number(result.rows[0].cb_gco2eq));
   }
 }
 
