@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { apiClient, ComplianceBalanceDTO } from '../adapters/infrastructure/apiClient';
+import { apiClient } from '../adapters/infrastructure/apiClient';
+import type { ComplianceBalanceDTO } 
+  from '../adapters/infrastructure/apiClient';
+
 
 export default function BankingTab() {
   const [shipId, setShipId] = useState('');

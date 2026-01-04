@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { apiClient, RouteDTO } from '../adapters/infrastructure/apiClient';
+import { apiClient } from '../adapters/infrastructure/apiClient';
+import type { RouteDTO } from '../adapters/infrastructure/apiClient.ts';
+
 
 export default function RoutesTab() {
   const [routes, setRoutes] = useState<RouteDTO[]>([]);
