@@ -23,22 +23,38 @@ export function setupRoutes(
   const poolingController = new PoolingController(complianceRepository);
 
   // Routes endpoints
-  router.get("/routes", (req, res) => routesController.getAllRoutes(req, res));
-  router.post("/routes/:id/baseline", (req, res) => routesController.setBaseline(req, res));
+  router.get("/routes", (req, res, next) => {
+    routesController.getAllRoutes(req, res).catch(next);
+  });
+  router.post("/routes/:id/baseline", (req, res, next) => {
+    routesController.setBaseline(req, res).catch(next);
+  });
 
   // Comparison endpoints
-  router.get("/routes/comparison", (req, res) => comparisonController.compareRoutes(req, res));
+  router.get("/routes/comparison", (req, res, next) => {
+    comparisonController.compareRoutes(req, res).catch(next);
+  });
 
   // Compliance endpoints
-  router.get("/compliance/cb", (req, res) => bankingController.getComplianceBalance(req, res));
-  router.get("/compliance/adjusted-cb", (req, res) => bankingController.getAdjustedComplianceBalance(req, res));
+  router.get("/compliance/cb", (req, res, next) => {
+    bankingController.getComplianceBalance(req, res).catch(next);
+  });
+  router.get("/compliance/adjusted-cb", (req, res, next) => {
+    bankingController.getAdjustedComplianceBalance(req, res).catch(next);
+  });
 
   // Banking endpoints
-  router.post("/banking/bank", (req, res) => bankingController.bank(req, res));
-  router.post("/banking/apply", (req, res) => bankingController.apply(req, res));
+  router.post("/banking/bank", (req, res, next) => {
+    bankingController.bank(req, res).catch(next);
+  });
+  router.post("/banking/apply", (req, res, next) => {
+    bankingController.apply(req, res).catch(next);
+  });
 
   // Pooling endpoints
-  router.post("/pools", (req, res) => poolingController.createPool(req, res));
+  router.post("/pools", (req, res, next) => {
+    poolingController.createPool(req, res).catch(next);
+  });
 
   return router;
 }
