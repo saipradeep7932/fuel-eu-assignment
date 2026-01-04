@@ -1,0 +1,76 @@
+import { Pool, PoolClient } from "pg";
+import { ComplianceRepository } from "../../../core/ports/ComplianceRepository";
+import { ComplianceBalance } from "../../../core/domain/value-objects/ComplianceBalance";
+import { Year } from "../../../core/domain/value-objects/Year";
+
+/**
+ * Database row structure for ship_compliance table
+ */
+interface ComplianceRow {
+  id: number;
+  ship_id: string;
+  year: number;
+  cb_gco2eq: number;
+}
+
+/**
+ * PostgreSQL implementation of ComplianceRepository
+ * 
+ * Maps database rows to ComplianceBalance value objects and vice versa.
+ * Handles only persistence logic, no business logic.
+ */
+export class PostgresComplianceRepository implements ComplianceRepository {
+  constructor(private readonly db: Pool | PoolClient) {}
+
+  /**
+   * Save compliance balance for a ship in a given year
+   */
+  async saveComplianceBalance(
+    shipId: string,
+    year: Year,
+    balance: ComplianceBalance
+  ): Promise<void> {
+    const yearValue = year.getValue();
+    const balanceValue = balance.getValue();
+
+    // Check if record exists
+    const existing = await this.db.query<ComplianceRow>(
+      "SELECT id FROM ship_compliance WHERE ship_id = $1 AND year = $2",
+      [shipId, yearValue]
+    );
+
+    if (existing.rows.length > 0) {
+      // Update existing record
+      await this.db.query(
+        "UPDATE ship_compliance SET cb_gco2eq = $1 WHERE ship_id = $2 AND year = $3",
+        [balanceValue, shipId, yearValue]
+      );
+    } else {
+      // Insert new record
+      await this.db.query(
+        "INSERT INTO ship_compliance (ship_id, year, cb_gco2eq) VALUES ($1, $2, $3)",
+        [shipId, yearValue, balanceValue]
+      );
+    }
+  }
+
+  /**
+   * Find compliance balance for a ship in a given year
+   */
+  async findComplianceBalance(
+    shipId: string,
+    year: Year
+  ): Promise<ComplianceBalance | null> {
+    const result = await this.db.query<ComplianceRow>(
+      "SELECT * FROM ship_compliance WHERE ship_id = $1 AND year = $2",
+      [shipId, year.getValue()]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return ComplianceBalance.create(result.rows[0].cb_gco2eq);
+  }
+}
+
