@@ -98,6 +98,17 @@ export class BankingController {
   }
 
   /**
+   * GET /compliance/adjusted-cb?shipId&year
+   * Get adjusted compliance balance (after bank applications) for a ship in a given year
+   * This returns the CB after any banking adjustments have been applied
+   */
+  async getAdjustedComplianceBalance(req: Request, res: Response): Promise<void> {
+    // Adjusted CB is the same as regular CB since we store the adjusted value after banking
+    // This endpoint exists per spec requirement
+    await this.getComplianceBalance(req, res);
+  }
+
+  /**
    * POST /banking/bank
    * Bank a positive compliance balance surplus
    * Body: { shipId, year, amount }

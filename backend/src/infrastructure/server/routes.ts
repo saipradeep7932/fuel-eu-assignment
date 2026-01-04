@@ -31,6 +31,7 @@ export function setupRoutes(
 
   // Compliance endpoints
   router.get("/compliance/cb", (req, res) => bankingController.getComplianceBalance(req, res));
+  router.get("/compliance/adjusted-cb", (req, res) => bankingController.getAdjustedComplianceBalance(req, res));
 
   // Banking endpoints
   router.post("/banking/bank", (req, res) => bankingController.bank(req, res));
