@@ -293,5 +293,74 @@ export class BankingController {
       });
     }
   }
+
+  /**
+   * GET /banking/records?shipId&year
+   * Get banking records for a ship in a given year
+   */
+  async getBankingRecords(req: Request, res: Response): Promise<void> {
+    try {
+      const shipId = req.query.shipId as string;
+      const yearParam = req.query.year;
+
+      if (!shipId) {
+        res.status(400).json({ error: "shipId query parameter is required" });
+        return;
+      }
+
+      if (!yearParam) {
+        res.status(400).json({ error: "year query parameter is required" });
+        return;
+      }
+
+      const year = Number(yearParam);
+      if (!Number.isInteger(year)) {
+        res.status(400).json({
+          error: "Invalid year",
+          message: "Year must be an integer",
+        });
+        return;
+      }
+
+      // Validate year range
+      const MIN_YEAR = 2000;
+      const MAX_YEAR = 2100;
+      if (year < MIN_YEAR || year > MAX_YEAR) {
+        res.status(400).json({
+          error: "Invalid year",
+          message: `Year must be between ${MIN_YEAR} and ${MAX_YEAR}`,
+        });
+        return;
+      }
+
+      const yearVO = Year.create(year);
+      const records = await this.complianceRepository.getBankingRecords(shipId, yearVO);
+
+      if (records.length === 0) {
+        res.status(404).json({
+          error: "Banking records not found",
+          message: `No banking records found for ship ${shipId} in year ${year}`,
+        });
+        return;
+      }
+
+      const totalBanked = records.reduce((sum, record) => sum + record.amount, 0);
+
+      res.status(200).json({
+        shipId,
+        year,
+        records: records.map((record) => ({
+          amount: record.amount,
+          createdAt: record.createdAt.toISOString(),
+        })),
+        totalBanked,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to get banking records",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
 }
 

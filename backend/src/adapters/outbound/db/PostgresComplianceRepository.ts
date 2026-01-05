@@ -15,6 +15,18 @@ interface ComplianceRow {
 }
 
 /**
+ * Database row structure for bank_entries table
+ * Note: NUMERIC columns are returned as strings by node-postgres (pg)
+ */
+interface BankEntryRow {
+  id: number;
+  ship_id: string;
+  year: number | string; // INTEGER may come as number
+  amount_gco2eq: string | number; // NUMERIC type returned as string
+  created_at: Date | string; // TIMESTAMP
+}
+
+/**
  * PostgreSQL implementation of ComplianceRepository
  * 
  * Maps database rows to ComplianceBalance value objects and vice versa.
@@ -73,6 +85,25 @@ export class PostgresComplianceRepository implements ComplianceRepository {
 
     // PostgreSQL NUMERIC is returned as string, must convert to number
     return ComplianceBalance.create(Number(result.rows[0].cb_gco2eq));
+  }
+
+  /**
+   * Get banking records for a ship in a given year
+   * Returns records ordered by created_at ASC
+   */
+  async getBankingRecords(
+    shipId: string,
+    year: Year
+  ): Promise<Array<{ amount: number; createdAt: Date }>> {
+    const result = await this.db.query<BankEntryRow>(
+      "SELECT amount_gco2eq, created_at FROM bank_entries WHERE ship_id = $1 AND year = $2 ORDER BY created_at ASC",
+      [shipId, year.getValue()]
+    );
+
+    return result.rows.map((row) => ({
+      amount: Number(row.amount_gco2eq), // PostgreSQL NUMERIC is returned as string, must convert to number
+      createdAt: row.created_at instanceof Date ? row.created_at : new Date(row.created_at),
+    }));
   }
 }
 

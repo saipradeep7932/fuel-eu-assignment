@@ -44,6 +44,9 @@ export function setupRoutes(
   });
 
   // Banking endpoints
+  router.get("/banking/records", (req, res, next) => {
+    bankingController.getBankingRecords(req, res).catch(next);
+  });
   router.post("/banking/bank", (req, res, next) => {
     bankingController.bank(req, res).catch(next);
   });

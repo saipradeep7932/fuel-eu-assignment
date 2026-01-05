@@ -39,5 +39,16 @@ export interface ComplianceRepository {
     shipId: string,
     year: Year
   ): Promise<ComplianceBalance | null>;
+
+  /**
+   * Get banking records for a ship in a given year
+   * @param shipId Ship identifier
+   * @param year Year of compliance
+   * @returns Promise resolving to array of banking records with amount and createdAt
+   */
+  getBankingRecords(
+    shipId: string,
+    year: Year
+  ): Promise<Array<{ amount: number; createdAt: Date }>>;
 }
 
