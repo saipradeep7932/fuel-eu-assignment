@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { apiClient } from '../adapters/infrastructure/apiClient';
-import type { ComplianceBalanceDTO } 
-  from '../adapters/infrastructure/apiClient';
-
+import type { ComplianceBalanceDTO, BankingRecordsDTO } from '../adapters/infrastructure/apiClient';
 
 export default function BankingTab() {
   const [shipId, setShipId] = useState('');
   const [year, setYear] = useState('2024');
   const [balance, setBalance] = useState<ComplianceBalanceDTO | null>(null);
+  const [bankingRecords, setBankingRecords] = useState<BankingRecordsDTO | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingRecords, setLoadingRecords] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Banking form state
@@ -33,11 +33,36 @@ export default function BankingTab() {
       const data = await apiClient.getComplianceBalance(shipId, parseInt(year));
       setBalance(data);
       setLastOperation(null);
+      // Also load banking records when CB is loaded
+      await loadBankingRecords();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load compliance balance');
       setBalance(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBankingRecords = async () => {
+    if (!shipId || !year) {
+      return;
+    }
+
+    try {
+      setLoadingRecords(true);
+      const data = await apiClient.getBankingRecords(shipId, parseInt(year));
+      setBankingRecords(data);
+    } catch (err) {
+      // Don't show error if records not found (404), just set to null
+      if (err instanceof Error && err.message.includes('404')) {
+        setBankingRecords(null);
+      } else {
+        // Only show error for other errors
+        console.error('Failed to load banking records:', err);
+        setBankingRecords(null);
+      }
+    } finally {
+      setLoadingRecords(false);
     }
   };
 
@@ -53,6 +78,7 @@ export default function BankingTab() {
       await apiClient.bankSurplus(shipId, parseInt(year), parseFloat(bankAmount));
       setBankAmount('');
       await loadComplianceBalance();
+      await loadBankingRecords(); // Reload records after banking
       alert('Surplus banked successfully');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to bank surplus');
@@ -79,6 +105,7 @@ export default function BankingTab() {
       });
       setApplyAmount('');
       await loadComplianceBalance();
+      await loadBankingRecords(); // Reload records after applying
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to apply banked surplus');
     } finally {
@@ -235,6 +262,60 @@ export default function BankingTab() {
               <p className="text-xl font-bold text-green-600">{lastOperation.cbAfter.toFixed(4)} t CO₂e</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Banking Records */}
+      {balance && (
+        <div className="mt-6 bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Banking Records</h3>
+            {loadingRecords && <span className="text-sm text-gray-500">Loading...</span>}
+          </div>
+
+          {bankingRecords && bankingRecords.records.length > 0 ? (
+            <>
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">Total Banked</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {bankingRecords.totalBanked.toFixed(4)} t CO₂e
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount (t CO₂e)
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created At
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {bankingRecords.records.map((record, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {record.amount.toFixed(4)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(record.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            !loadingRecords && (
+              <p className="text-sm text-gray-500 text-center py-4">
+                No banking records found for this ship and year.
+              </p>
+            )
+          )}
         </div>
       )}
 

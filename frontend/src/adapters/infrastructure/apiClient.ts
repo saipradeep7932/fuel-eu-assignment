@@ -46,6 +46,16 @@ export interface ComplianceBalanceDTO {
   isCompliant: boolean;
 }
 
+export interface BankingRecordsDTO {
+  shipId: string;
+  year: number;
+  records: Array<{
+    amount: number;
+    createdAt: string;
+  }>;
+  totalBanked: number;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -101,6 +111,10 @@ class ApiClient {
   }
 
   // Banking
+  async getBankingRecords(shipId: string, year: number): Promise<BankingRecordsDTO> {
+    return this.request<BankingRecordsDTO>(`/banking/records?shipId=${shipId}&year=${year}`);
+  }
+
   async bankSurplus(shipId: string, year: number, amount: number): Promise<{ message: string; shipId: string; year: number; amount: number }> {
     return this.request('/banking/bank', {
       method: 'POST',
