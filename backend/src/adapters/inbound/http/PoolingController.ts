@@ -4,6 +4,8 @@ import { CreatePool } from "../../../core/application/CreatePool";
 import { ComplianceBalance } from "../../../core/domain/value-objects/ComplianceBalance";
 import { Year } from "../../../core/domain/value-objects/Year";
 
+const UNIT_SCALE = 1000000; // 1 Tonne = 1,000,000 Grams
+
 /**
  * Pooling Controller (Inbound HTTP Adapter)
  * 
@@ -88,7 +90,8 @@ export class PoolingController {
 
         poolMembers.push({
           shipId: member.shipId,
-          cbBefore: ComplianceBalance.create(member.cbBefore),
+          // Convert Tonnes -> Grams for Domain Logic
+          cbBefore: ComplianceBalance.create(member.cbBefore * UNIT_SCALE),
         });
       }
 
@@ -98,12 +101,12 @@ export class PoolingController {
       res.status(200).json({
         message: "Pool created successfully",
         year,
-        poolSum: result.poolSum,
+        poolSum: result.poolSum / UNIT_SCALE, // Return Tonnes
         valid: result.valid,
         members: result.members.map((member) => ({
           shipId: member.shipId,
-          cbBefore: member.cbBefore.getValue(),
-          cbAfter: member.cbAfter.getValue(),
+          cbBefore: member.cbBefore.getValue() / UNIT_SCALE, // Return Tonnes
+          cbAfter: member.cbAfter.getValue() / UNIT_SCALE, // Return Tonnes
         })),
       });
     } catch (error) {

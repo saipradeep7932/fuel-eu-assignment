@@ -8,6 +8,8 @@ import { ComplianceBalance } from "../../../core/domain/value-objects/Compliance
 import { Year } from "../../../core/domain/value-objects/Year";
 import { RouteId } from "../../../core/domain/value-objects/RouteId";
 
+const UNIT_SCALE = 1000000; // 1 Tonne = 1,000,000 Grams
+
 /**
  * Banking Controller (Inbound HTTP Adapter)
  * 
@@ -31,7 +33,7 @@ export class BankingController {
     private readonly complianceRepository: ComplianceRepository,
     private readonly routeRepository: RouteRepository
   ) {
-    this.getComplianceBalanceUseCase = new GetComplianceBalance(complianceRepository);
+    this.getComplianceBalanceUseCase = new GetComplianceBalance(complianceRepository, routeRepository);
     this.bankSurplus = new BankSurplus(complianceRepository);
     this.applyBanked = new ApplyBanked(complianceRepository);
   }
@@ -82,7 +84,7 @@ export class BankingController {
       try {
         const routeId = RouteId.create(shipId);
         const route = await this.routeRepository.findById(routeId);
-        
+
         if (route && route.getIsBaseline()) {
           res.status(400).json({
             error: "Invalid request",
@@ -108,7 +110,7 @@ export class BankingController {
       res.status(200).json({
         shipId,
         year,
-        cb: balance.getValue(),
+        cb: balance.getValue() / UNIT_SCALE, // Convert Grams -> Tonnes
         isSurplus: balance.isSurplus(),
         isDeficit: balance.isDeficit(),
         isCompliant: balance.isCompliant(),
@@ -188,7 +190,8 @@ export class BankingController {
       }
 
       const yearVO = Year.create(year);
-      const balance = ComplianceBalance.create(amount);
+      // Convert Tonnes -> Grams for Domain
+      const balance = ComplianceBalance.create(amount * UNIT_SCALE);
 
       await this.bankSurplus.execute(shipId, yearVO, balance);
 
@@ -196,7 +199,7 @@ export class BankingController {
         message: "Surplus banked successfully",
         shipId,
         year,
-        amount: balance.getValue(),
+        amount: balance.getValue() / UNIT_SCALE, // Return Tonnes
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes("Can only bank")) {
@@ -283,20 +286,21 @@ export class BankingController {
       }
 
       // Apply banked amount
+      // Convert Tonnes -> Grams for Domain Logic
       const newBalance = await this.applyBanked.execute(
         shipId,
         yearVO,
         currentBalance,
-        amount
+        amount * UNIT_SCALE
       );
 
       res.status(200).json({
         message: "Banked surplus applied successfully",
         shipId,
         year,
-        cbBefore: currentBalance.getValue(),
-        applied: amount,
-        cbAfter: newBalance.getValue(),
+        cbBefore: currentBalance.getValue() / UNIT_SCALE, // Return Tonnes
+        applied: amount, // Already Tonnes from input
+        cbAfter: newBalance.getValue() / UNIT_SCALE, // Return Tonnes
       });
     } catch (error) {
       if (
@@ -374,10 +378,10 @@ export class BankingController {
         shipId,
         year,
         records: records.map((record) => ({
-          amount: record.amount,
+          amount: record.amount / UNIT_SCALE, // Return Tonnes
           createdAt: record.createdAt.toISOString(),
         })),
-        totalBanked,
+        totalBanked: totalBanked / UNIT_SCALE, // Return Tonnes
       });
     } catch (error) {
       res.status(500).json({
