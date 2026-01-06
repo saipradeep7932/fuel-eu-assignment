@@ -33,11 +33,10 @@ function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -48,10 +47,18 @@ function App() {
 
       {/* Tab Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'routes' && <RoutesTab />}
-        {activeTab === 'compare' && <CompareTab />}
-        {activeTab === 'banking' && <BankingTab />}
-        {activeTab === 'pooling' && <PoolingTab />}
+        <div style={{ display: activeTab === 'routes' ? 'block' : 'none' }}>
+          <RoutesTab />
+        </div>
+        <div style={{ display: activeTab === 'compare' ? 'block' : 'none' }}>
+          <CompareTab />
+        </div>
+        <div style={{ display: activeTab === 'banking' ? 'block' : 'none' }}>
+          <BankingTab />
+        </div>
+        <div style={{ display: activeTab === 'pooling' ? 'block' : 'none' }}>
+          <PoolingTab />
+        </div>
       </main>
     </div>
   );

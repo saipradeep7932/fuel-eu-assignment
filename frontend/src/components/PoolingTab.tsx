@@ -9,8 +9,8 @@ interface PoolMember {
 
 export default function PoolingTab() {
   const [year, setYear] = useState('2024');
-  const [members, setMembers] = useState<Array<{ shipId: string; cbBefore: number }>>([
-    { shipId: '', cbBefore: 0 },
+  const [members, setMembers] = useState<Array<{ shipId: string; cbBefore: number | null; error?: string }>>([
+    { shipId: '', cbBefore: null },
   ]);
   const [poolResult, setPoolResult] = useState<{
     poolSum: number;
@@ -21,17 +21,54 @@ export default function PoolingTab() {
   const [error, setError] = useState<string | null>(null);
 
   const addMember = () => {
-    setMembers([...members, { shipId: '', cbBefore: 0 }]);
+    setMembers([...members, { shipId: '', cbBefore: null }]);
   };
 
   const removeMember = (index: number) => {
     setMembers(members.filter((_, i) => i !== index));
   };
 
-  const updateMember = (index: number, field: 'shipId' | 'cbBefore', value: string | number) => {
+  const updateMemberShipId = (index: number, value: string) => {
     const updated = [...members];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], shipId: value, cbBefore: null, error: undefined }; // Reset CB when ID changes
     setMembers(updated);
+  };
+
+  const fetchMemberCb = async (index: number) => {
+    const member = members[index];
+    if (!member.shipId || !year) return;
+
+    try {
+      const updated = [...members];
+      // Reset error before fetch
+      updated[index] = { ...updated[index], error: undefined };
+      setMembers(updated);
+
+      const result = await apiClient.getAdjustedComplianceBalance(member.shipId, parseInt(year));
+
+      const newMembers = [...members];
+      newMembers[index] = {
+        ...newMembers[index],
+        cbBefore: result.cb
+      };
+      setMembers(newMembers);
+    } catch (err: any) {
+      const newMembers = [...members];
+      let errorMessage = 'Failed to fetch CB';
+      if (err.status === 404) errorMessage = 'Ship/CB not found';
+      if (err.message && err.message.toLowerCase().includes('baseline')) {
+        errorMessage = 'Baseline (Ineligible)';
+      } else if (err.status === 400) {
+        errorMessage = 'Invalid Ship/Year';
+      }
+
+      newMembers[index] = {
+        ...newMembers[index],
+        cbBefore: null,
+        error: errorMessage
+      };
+      setMembers(newMembers);
+    }
   };
 
   const calculatePoolSum = () => {
@@ -44,16 +81,24 @@ export default function PoolingTab() {
       return;
     }
 
-    const invalidMembers = members.filter((m) => !m.shipId || m.cbBefore === undefined);
-    if (invalidMembers.length > 0) {
-      setError('All members must have Ship ID and CB Before value');
+    // Filter out incomplete members
+    const validMembers = members.filter((m) => m.shipId && m.cbBefore !== null && m.cbBefore !== undefined);
+
+    if (validMembers.length !== members.length) {
+      setError('Please fetch compliance balance for all members first');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      const result = await apiClient.createPool(parseInt(year), members);
+      // Map members to expected API format (casting cbBefore to number as we filtered nulls)
+      const payloadMembers = validMembers.map(m => ({
+        shipId: m.shipId,
+        cbBefore: m.cbBefore as number
+      }));
+
+      const result = await apiClient.createPool(parseInt(year), payloadMembers);
       setPoolResult({
         poolSum: result.poolSum,
         valid: result.valid,
@@ -68,6 +113,7 @@ export default function PoolingTab() {
   };
 
   const poolSum = calculatePoolSum();
+  const allMembersHaveCb = members.every(m => m.cbBefore !== null);
   const isValid = poolSum >= 0;
 
   return (
@@ -82,7 +128,11 @@ export default function PoolingTab() {
           <input
             type="number"
             value={year}
-            onChange={(e) => setYear(e.target.value)}
+            onChange={(e) => {
+              setYear(e.target.value);
+              // Reset all CBs when year changes as they might be invalid
+              setMembers(members.map(m => ({ ...m, cbBefore: null })));
+            }}
             className="w-full md:w-48 border border-gray-300 rounded-md px-3 py-2"
           />
         </div>
@@ -100,32 +150,44 @@ export default function PoolingTab() {
           </div>
 
           {members.map((member, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end border-b pb-4">
-              <div>
+            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start border-b pb-4">
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ship ID</label>
-                <input
-                  type="text"
-                  value={member.shipId}
-                  onChange={(e) => updateMember(index, 'shipId', e.target.value)}
-                  placeholder="e.g., SHIP001"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={member.shipId}
+                    onChange={(e) => updateMemberShipId(index, e.target.value)}
+                    onBlur={() => { if (member.shipId && !member.cbBefore) fetchMemberCb(index) }} // Auto fetch on blur
+                    onKeyDown={(e) => { if (e.key === 'Enter') fetchMemberCb(index) }}
+                    placeholder="e.g., SHIP001"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <button
+                    onClick={() => fetchMemberCb(index)}
+                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded text-sm hover:bg-gray-200"
+                    title="Fetch Compliance Balance"
+                  >
+                    🔍
+                  </button>
+                </div>
+                {member.error && (
+                  <p className="text-red-500 text-xs mt-1">{member.error}</p>
+                )}
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CB Before (t CO₂e)</label>
-                <input
-                  type="number"
-                  value={member.cbBefore || ''}
-                  onChange={(e) => updateMember(index, 'cbBefore', parseFloat(e.target.value) || 0)}
-                  placeholder="0.0000"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">CB Adjust. (t CO₂e)</label>
+                <div className={`w-full border rounded-md px-3 py-2 bg-gray-50 ${member.cbBefore === null ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                  {member.cbBefore !== null ? member.cbBefore.toFixed(4) : 'Not fetched'}
+                </div>
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex items-end h-full pb-1">
                 {members.length > 1 && (
                   <button
                     onClick={() => removeMember(index)}
-                    className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                    className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 w-full md:w-auto"
                   >
                     Remove
                   </button>
@@ -144,13 +206,15 @@ export default function PoolingTab() {
             </span>
           </div>
           <p className={`text-sm mt-1 ${isValid ? 'text-green-700' : 'text-red-700'}`}>
-            {isValid ? '✅ Valid (Sum ≥ 0)' : '❌ Invalid (Sum < 0). Pool must have sum ≥ 0'}
+            {allMembersHaveCb
+              ? (isValid ? '✅ Valid (Sum ≥ 0)' : '❌ Invalid (Sum < 0). Pool must have sum ≥ 0')
+              : '⚠️ Fetch all compliance balances first'}
           </p>
         </div>
 
         <button
           onClick={handleCreatePool}
-          disabled={loading || !isValid || members.length === 0}
+          disabled={loading || !isValid || !allMembersHaveCb || members.length === 0}
           className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
         >
           {loading ? 'Creating Pool...' : 'Create Pool'}
@@ -197,6 +261,7 @@ export default function PoolingTab() {
                     role = 'Deficit (Covered)'; // If change == 0? Wait, if change > 0 it's covered.
                     // If cbBefore < 0 and change == 0, it means it wasn't covered (impossible if valid pool?)
                     // If pool is valid, deficits should be covered.
+                    if (poolResult.valid) role = 'Deficit (Covered)' // Just simplifying
                   }
 
                   return (
@@ -213,8 +278,8 @@ export default function PoolingTab() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${change > 0 ? 'bg-green-100 text-green-800' :
-                            change < 0 ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-600'
+                          change < 0 ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-600'
                           }`}>
                           {change > 0 ? '+' : ''}{change.toFixed(4)}
                         </span>

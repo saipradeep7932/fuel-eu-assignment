@@ -36,9 +36,14 @@ export default function BankingTab() {
       // Also load banking records when CB is loaded
       await loadBankingRecords();
     } catch (err) {
-      // Display backend error message directly (includes baseline ship messages)
       const errorMsg = err instanceof Error ? err.message : 'Failed to load compliance balance';
-      setError(errorMsg);
+
+      if (errorMsg.toLowerCase().includes('baseline')) {
+        setError('Baseline ships are not eligible for banking operations (No Compliance Balance).');
+      } else {
+        setError(errorMsg);
+      }
+
       setBalance(null);
       setBankingRecords(null);
     } finally {
@@ -237,15 +242,20 @@ export default function BankingTab() {
             <div className="relative group">
               <button
                 onClick={handleApply}
-                disabled={loading || !balance || balance.cb >= 0}
+                disabled={loading || !balance || !balance.isDeficit || !bankingRecords || bankingRecords.totalBanked <= 0}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Apply to Deficit
               </button>
               {/* Tooltip for disabled state */}
-              {balance && balance.cb >= 0 && (
+              {balance && !balance.isDeficit && (
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                   No deficit to offset
+                </div>
+              )}
+              {balance && balance.isDeficit && bankingRecords && bankingRecords.totalBanked <= 0 && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  No banked surplus available
                 </div>
               )}
             </div>
