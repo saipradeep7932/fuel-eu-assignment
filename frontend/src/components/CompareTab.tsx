@@ -25,189 +25,125 @@ export default function CompareTab() {
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-8">Loading comparison...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-600 text-center py-8">Error: {error}</div>;
-  }
-
-  if (!comparison) {
-    return <div className="text-center py-8">No comparison data available</div>;
-  }
+  if (loading) return <div className="text-center py-8 text-slate-400">Loading comparisons...</div>;
+  if (error) return <div className="text-center py-8 text-red-400">{error}</div>;
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Route Comparison</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-white">Compare Routes</h2>
+        <span className="text-sm text-slate-400">Analyze performance against baseline</span>
+      </div>
 
       {/* Filter */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="bg-navy-800/50 backdrop-blur p-4 rounded-xl border border-navy-700 shadow-lg">
         <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-gray-700">Filter by Year:</label>
+          <label className="text-sm font-medium text-slate-300">Filter by Year:</label>
           <input
             type="number"
             value={yearFilter}
             onChange={(e) => setYearFilter(e.target.value)}
             placeholder="Year (optional)"
-            className="border border-gray-300 rounded-md px-3 py-2 w-32"
+            className="bg-navy-900 border border-navy-700 rounded-lg px-3 py-2 w-32 text-white placeholder-navy-500 focus:ring-ocean-500 focus:border-ocean-500"
           />
           <button
             onClick={loadComparison}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-ocean-600 text-white rounded-lg hover:bg-ocean-500 transition-all shadow-lg shadow-ocean-600/20"
           >
             Apply Filter
           </button>
         </div>
       </div>
 
-      {/* Baseline Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold text-blue-900 mb-2">Baseline Route</h3>
-        <p className="text-sm text-blue-800">
-          <strong>Route ID:</strong> {comparison.baseline.routeId} |{' '}
-          <strong>Year:</strong> {comparison.baseline.year} |{' '}
-          <strong>Vessel Type:</strong> {comparison.baseline.vesselType} |{' '}
-          <strong>Intensity:</strong> {comparison.baseline.intensity.toFixed(2)} gCO₂e/MJ
-        </p>
-        <p className="text-sm text-blue-800 mt-1">
-          <strong>Target Intensity:</strong> {comparison.targetIntensity.toFixed(4)} gCO₂e/MJ
-        </p>
-      </div>
-
-      {/* Comparison Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
-        {comparison.comparisons.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            <p className="text-lg">No comparison data available.</p>
-            <p className="text-sm mt-2">Try adjusting the year filter or ensure routes exist for the baseline year.</p>
+      {!comparison ? (
+        <div className="text-center py-12 bg-navy-800/30 rounded-xl border border-navy-800 border-dashed">
+          <p className="text-slate-500">No comparison data available.</p>
+        </div>
+      ) : (
+        <>
+          {/* Baseline Summary Card */}
+          <div className="bg-gradient-to-br from-navy-800 to-navy-900 border border-navy-700 rounded-xl p-6 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-ocean-500/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+            <h3 className="text-sm font-semibold text-ocean-400 uppercase tracking-wider mb-4">Baseline Comparison Target</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Route ID</span>
+                <span className="text-lg font-medium text-white">{comparison.baseline.routeId}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Year</span>
+                <span className="text-lg font-medium text-white">{comparison.baseline.year}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Target Intensity</span>
+                <span className="text-2xl font-bold text-white">
+                  {comparison.targetIntensity.toFixed(1)} <span className="text-xs font-normal text-slate-500">gCO₂e/MJ</span>
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Baseline Intensity</span>
+                <span className="text-xl font-bold text-slate-300">
+                  {comparison.baseline.intensity.toFixed(2)}
+                </span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Route ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vessel / Fuel
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Year
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Baseline Intensity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Comparison Intensity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trend
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {comparison.comparisons.map((comp) => {
-                  const isImprovement = comp.comparisonIntensity < comp.baselineIntensity;
-                  return (
-                    <tr key={comp.routeId}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {comp.routeId}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {comp.vesselType} / {comp.fuelType}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{comp.year}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {comp.baselineIntensity.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {comp.comparisonIntensity.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-bold text-lg ${comp.percentDifference > 0
-                                ? 'text-red-500' // Higher intensity (Worse)
-                                : 'text-green-500' // Lower intensity (Better)
-                              }`}
-                          >
-                            {comp.percentDifference > 0 ? '↑' : '↓'}
-                          </span>
-                          <span className="text-gray-600">
-                            {Math.abs(comp.percentDifference).toFixed(2)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {comp.compliant ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            ✅ Compliant
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            ❌ Non-compliant
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
-      {/* Bar Chart Visualization */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-6">Intensity Comparison (gCO₂e/MJ)</h3>
-        {comparison.comparisons.length > 0 ? (
-          <div className="space-y-6">
+          {/* Comparisons List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {comparison.comparisons.map((comp) => {
-              const maxVal = Math.max(comp.baselineIntensity, comp.comparisonIntensity) * 1.2;
-              const baselineWidth = (comp.baselineIntensity / maxVal) * 100;
-              const comparisonWidth = (comp.comparisonIntensity / maxVal) * 100;
-
+              const isImprovement = comp.percentDifference < 0;
               return (
-                <div key={comp.routeId} className="border-b pb-4 last:border-0">
-                  <p className="text-sm font-medium mb-2">{comp.routeId} ({comp.year})</p>
-
-                  {/* Baseline Bar */}
-                  <div className="flex items-center mb-1">
-                    <span className="w-24 text-xs text-gray-500">Baseline</span>
-                    <div className="flex-1 max-w-md h-4 bg-gray-100 rounded-r overflow-hidden relative">
-                      <div
-                        className="h-full bg-blue-400"
-                        style={{ width: `${baselineWidth}%` }}
-                      ></div>
+                <div key={comp.routeId} className="bg-navy-800/50 border border-navy-700 rounded-xl p-5 hover:bg-navy-800 transition-all group">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="font-semibold text-white group-hover:text-ocean-300 transition-colors">{comp.routeId}</h4>
+                      <div className="flex gap-2 text-xs mt-1">
+                        <span className="text-slate-400">{comp.vesselType}</span>
+                        <span className="text-navy-600">•</span>
+                        <span className="text-slate-400">{comp.fuelType}</span>
+                      </div>
                     </div>
-                    <span className="ml-2 text-xs font-medium">{comp.baselineIntensity.toFixed(1)}</span>
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${comp.compliant ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                      {comp.compliant ? 'Compliant' : 'Non-Compliant'}
+                    </span>
                   </div>
 
-                  {/* Comparison Bar */}
-                  <div className="flex items-center">
-                    <span className="w-24 text-xs text-gray-500">Actual</span>
-                    <div className="flex-1 max-w-md h-4 bg-gray-100 rounded-r overflow-hidden relative">
-                      <div
-                        className={`h-full ${comp.comparisonIntensity > comp.baselineIntensity ? 'bg-red-400' : 'bg-green-400'}`}
-                        style={{ width: `${comparisonWidth}%` }}
-                      ></div>
+                  <div className="space-y-3">
+                    {/* Interactive Bar Chart Mini */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>Intensity Comparison</span>
+                      </div>
+                      <div className="h-2 bg-navy-950 rounded-full overflow-hidden flex">
+                        {/* Example simplified visual */}
+                        <div className="h-full bg-slate-600 w-1/2 opacity-30"></div>
+                        <div
+                          className={`h-full ${isImprovement ? 'bg-green-500' : 'bg-red-500'}`}
+                          style={{ width: `${Math.min(100, (comp.comparisonIntensity / (comp.baselineIntensity * 1.5)) * 100)}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <span className="ml-2 text-xs font-medium">{comp.comparisonIntensity.toFixed(1)}</span>
+
+                    <div className="flex items-end justify-between pt-2">
+                      <div>
+                        <div className="text-xs text-slate-500 mb-0.5">Current Intensity</div>
+                        <div className="text-lg font-bold text-white">{comp.comparisonIntensity.toFixed(2)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-slate-500 mb-0.5">Difference</div>
+                        <div className={`text-lg font-bold ${isImprovement ? 'text-green-400' : 'text-red-400'}`}>
+                          {isImprovement ? '↓' : '↑'} {Math.abs(comp.percentDifference).toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
-        ) : (
-          <div className="text-gray-500 text-center py-8">Select criteria to see visualization</div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

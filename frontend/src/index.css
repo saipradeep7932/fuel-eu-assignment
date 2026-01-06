@@ -9,4 +9,6 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #020617; /* navy-950 */
+  color: #f8fafc; /* slate-50 */
 }

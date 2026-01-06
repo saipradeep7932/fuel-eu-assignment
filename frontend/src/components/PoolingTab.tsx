@@ -117,172 +117,190 @@ export default function PoolingTab() {
   const isValid = poolSum >= 0;
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Pooling (Article 21)</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-white">Pooling & Compliance</h2>
+        <span className="bg-purple-900/50 border border-purple-700 text-purple-300 text-xs font-semibold px-2.5 py-0.5 rounded">Article 21</span>
+      </div>
 
       {/* Pool Configuration */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h3 className="text-lg font-medium mb-4">Create Pool</h3>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+      <div className="bg-navy-800/50 backdrop-blur border border-navy-700 p-6 rounded-xl shadow-lg">
+        <h3 className="text-lg font-semibold text-white mb-4">Create Pool</h3>
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-400 mb-1">Year</label>
           <input
             type="number"
             value={year}
             onChange={(e) => {
               setYear(e.target.value);
-              // Reset all CBs when year changes as they might be invalid
-              setMembers(members.map(m => ({ ...m, cbBefore: null })));
+              setMembers(members.map(m => ({ ...m, cbBefore: null, error: undefined })));
             }}
-            className="w-full md:w-48 border border-gray-300 rounded-md px-3 py-2"
+            className="w-full md:w-48 bg-navy-900 border border-navy-700 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-white"
           />
         </div>
 
         {/* Pool Members */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-8">
           <div className="flex justify-between items-center">
-            <h4 className="font-medium">Pool Members</h4>
+            <h4 className="font-medium text-slate-300">Pool Members</h4>
             <button
               onClick={addMember}
-              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+              className="px-4 py-2 bg-navy-700 hover:bg-navy-600 text-white rounded-lg text-sm font-medium transition-colors border border-navy-600"
             >
-              + Add Member
+              + Add Ship
             </button>
           </div>
 
-          {members.map((member, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start border-b pb-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ship ID</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={member.shipId}
-                    onChange={(e) => updateMemberShipId(index, e.target.value)}
-                    onBlur={() => { if (member.shipId && !member.cbBefore) fetchMemberCb(index) }} // Auto fetch on blur
-                    onKeyDown={(e) => { if (e.key === 'Enter') fetchMemberCb(index) }}
-                    placeholder="e.g., SHIP001"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                  <button
-                    onClick={() => fetchMemberCb(index)}
-                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded text-sm hover:bg-gray-200"
-                    title="Fetch Compliance Balance"
-                  >
-                    🔍
-                  </button>
+          <div className="bg-navy-900/50 rounded-lg p-4 space-y-4 border border-navy-800">
+            {members.map((member, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                <div className="md:col-span-5">
+                  <label className="block text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">Ship ID</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={member.shipId}
+                      onChange={(e) => updateMemberShipId(index, e.target.value)}
+                      onBlur={() => { if (member.shipId && !member.cbBefore) fetchMemberCb(index) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') fetchMemberCb(index) }}
+                      placeholder="e.g. SHIP001"
+                      className={`w-full bg-navy-950 border rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-white placeholder-navy-700 ${member.error ? 'border-red-900/50 bg-red-900/10' : 'border-navy-700'}`}
+                    />
+                    <button
+                      onClick={() => fetchMemberCb(index)}
+                      className="px-3 py-2 bg-navy-800 border border-navy-700 rounded-lg text-slate-400 hover:text-white hover:bg-navy-700 transition-colors"
+                      title="Fetch Compliance Balance"
+                    >
+                      🔍
+                    </button>
+                  </div>
+                  {member.error && (
+                    <p className="text-red-400 text-xs mt-1 font-medium">{member.error}</p>
+                  )}
                 </div>
-                {member.error && (
-                  <p className="text-red-500 text-xs mt-1">{member.error}</p>
-                )}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CB Adjust. (t CO₂e)</label>
-                <div className={`w-full border rounded-md px-3 py-2 bg-gray-50 ${member.cbBefore === null ? 'text-gray-400 italic' : 'text-gray-900'}`}>
-                  {member.cbBefore !== null ? member.cbBefore.toFixed(4) : 'Not fetched'}
+                <div className="md:col-span-5">
+                  <label className="block text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">Adjusted CB (t CO₂e)</label>
+                  <div className={`w-full border rounded-lg px-3 py-2 h-[42px] flex items-center ${member.cbBefore === null ? 'bg-navy-950 text-slate-600 italic border-navy-800' :
+                      (member.cbBefore >= 0 ? 'bg-green-500/10 text-green-400 font-medium border-green-500/20' : 'bg-red-500/10 text-red-400 font-medium border-red-500/20')
+                    }`}>
+                    {member.cbBefore !== null ? member.cbBefore.toFixed(4) : 'Not fetched'}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 flex items-end h-full pt-6">
+                  {members.length > 1 && (
+                    <button
+                      onClick={() => removeMember(index)}
+                      className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg w-full text-center transition-colors"
+                      title="Remove Member"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <div className="flex items-end h-full pb-1">
-                {members.length > 1 && (
-                  <button
-                    onClick={() => removeMember(index)}
-                    className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 w-full md:w-auto"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Pool Sum Indicator */}
-        <div className="mt-6 p-4 rounded-lg border-2" style={{ borderColor: isValid ? '#10b981' : '#ef4444', backgroundColor: isValid ? '#f0fdf4' : '#fef2f2' }}>
+        <div className={`p-4 rounded-xl border ${isValid ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'} transition-all`}>
           <div className="flex justify-between items-center">
-            <span className="font-medium">Pool Sum:</span>
-            <span className={`text-2xl font-bold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
-              {poolSum.toFixed(4)} t CO₂e
+            <div>
+              <span className={`text-sm font-semibold uppercase tracking-wider ${isValid ? 'text-green-400' : 'text-red-400'}`}>Projected Pool Sum</span>
+              <p className={`text-xs mt-1 ${isValid ? 'text-green-500/70' : 'text-red-500/70'}`}>
+                {allMembersHaveCb
+                  ? (isValid ? 'Pool is valid (Sum ≥ 0)' : 'Pool is invalid (Sum < 0)')
+                  : 'Waiting for ship data...'}
+              </p>
+            </div>
+            <span className={`text-3xl font-bold ${isValid ? 'text-green-400' : 'text-red-400'}`}>
+              {poolSum.toFixed(4)} <span className="text-base font-normal opacity-70">t CO₂e</span>
             </span>
           </div>
-          <p className={`text-sm mt-1 ${isValid ? 'text-green-700' : 'text-red-700'}`}>
-            {allMembersHaveCb
-              ? (isValid ? '✅ Valid (Sum ≥ 0)' : '❌ Invalid (Sum < 0). Pool must have sum ≥ 0')
-              : '⚠️ Fetch all compliance balances first'}
-          </p>
         </div>
 
         <button
           onClick={handleCreatePool}
           disabled={loading || !isValid || !allMembersHaveCb || members.length === 0}
-          className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+          className="mt-6 w-full px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-500 disabled:bg-navy-800 disabled:text-navy-600 disabled:cursor-not-allowed shadow-lg shadow-purple-600/20 disabled:shadow-none transition-all"
         >
-          {loading ? 'Creating Pool...' : 'Create Pool'}
+          {loading ? 'Validating & Creating Pool...' : 'Create Pool'}
         </button>
+        {error && (
+          <div className="mt-4 p-4 bg-red-900/20 text-red-300 rounded-xl border border-red-900/50 text-sm">
+            {error}
+          </div>
+        )}
       </div>
 
       {/* Pool Result */}
       {poolResult && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium mb-4">Pool Result</h3>
-          <div className="mb-4">
-            <p className="text-sm text-gray-600">Pool Sum: <strong>{poolResult.poolSum.toFixed(4)} t CO₂e</strong></p>
-            <p className="text-sm text-gray-600">Valid: <strong>{poolResult.valid ? '✅ Yes' : '❌ No'}</strong></p>
+        <div className="bg-navy-800/50 backdrop-blur p-6 rounded-xl shadow-lg border border-navy-700 mt-8">
+          <div className="flex items-center justify-between mb-6 border-b border-navy-700 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-white">Pool Formation Result</h3>
+              <p className="text-sm text-slate-400">Allocation simulated successfully</p>
+            </div>
+            <div className="text-right">
+              <div className={`text-sm font-medium ${poolResult.valid ? 'text-green-400' : 'text-red-400'}`}>
+                {poolResult.valid ? '✅ Pool Valid' : '❌ Pool Invalid'}
+              </div>
+              <div className="text-xs text-slate-500">Total Sum: {poolResult.poolSum.toFixed(4)}</div>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-hidden rounded-lg border border-navy-700">
+            <table className="min-w-full divide-y divide-navy-700">
+              <thead className="bg-navy-900/80">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ship ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CB Before</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CB After</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Change</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Ship ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">CB Before</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Allocation</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-200 uppercase tracking-wider">CB After</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-navy-800 divide-y divide-navy-700">
                 {poolResult.members.map((member, index) => {
                   const change = member.cbAfter - member.cbBefore;
                   // Determine Role
                   let role = 'Neutral';
-                  let roleColor = 'text-gray-500';
+                  let roleBadge = 'bg-navy-700 text-slate-300';
 
                   if (member.cbBefore > 0 && change < 0) {
                     role = 'Donor (Surplus)';
-                    roleColor = 'text-blue-600 font-medium';
+                    roleBadge = 'bg-blue-500/20 text-blue-300 border border-blue-500/30';
                   } else if (member.cbBefore < 0 && change > 0) {
                     role = 'Receiver (Deficit)';
-                    roleColor = 'text-purple-600 font-medium';
+                    roleBadge = 'bg-purple-500/20 text-purple-300 border border-purple-500/30';
                   } else if (member.cbBefore > 0) {
                     role = 'Surplus (Unused)';
-                    roleColor = 'text-green-600';
+                    roleBadge = 'bg-green-500/20 text-green-300 border border-green-500/30';
                   } else if (member.cbBefore < 0) {
-                    role = 'Deficit (Covered)'; // If change == 0? Wait, if change > 0 it's covered.
-                    // If cbBefore < 0 and change == 0, it means it wasn't covered (impossible if valid pool?)
-                    // If pool is valid, deficits should be covered.
-                    if (poolResult.valid) role = 'Deficit (Covered)' // Just simplifying
+                    role = 'Deficit (Covered)';
+                    if (poolResult.valid) roleBadge = 'bg-green-500/10 text-green-400 border border-green-500/20';
                   }
 
                   return (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{member.shipId}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${roleColor}`}>
-                        {role}
+                    <tr key={index} className="hover:bg-navy-700/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{member.shipId}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleBadge}`}>
+                          {role}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 text-right font-mono">
                         {member.cbBefore.toFixed(4)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                        {member.cbAfter.toFixed(4)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${change > 0 ? 'bg-green-100 text-green-800' :
-                          change < 0 ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>
-                          {change > 0 ? '+' : ''}{change.toFixed(4)}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                        <span className={`font-medium ${change > 0 ? 'text-green-400' : change < 0 ? 'text-blue-400' : 'text-slate-600'}`}>
+                          {change > 0 ? '+' : ''}{change !== 0 ? change.toFixed(4) : '-'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-white text-right font-mono">
+                        {member.cbAfter.toFixed(4)}
                       </td>
                     </tr>
                   );
@@ -290,13 +308,6 @@ export default function PoolingTab() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {/* Error Display */}
-      {error && (
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
         </div>
       )}
     </div>
