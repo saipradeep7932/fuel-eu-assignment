@@ -35,7 +35,7 @@ export interface PoolResult {
  * This use case has side effects (persistence).
  */
 export class CreatePool {
-  constructor(private readonly complianceRepository: ComplianceRepository) {}
+  constructor(private readonly complianceRepository: ComplianceRepository) { }
 
   /**
    * Execute the use case
@@ -69,47 +69,56 @@ export class CreatePool {
     );
 
     const allocations: PoolMember[] = [];
-    let availableSurplus = 0;
 
-    // First pass: collect surpluses and allocate to deficits
+    // 1. Calculate total deficit that needs to be covered
+    let totalDeficitToCover = 0;
+    const surplusMembers = [];
+    const deficitAndNeutralMembers = [];
+
     for (const member of sortedMembers) {
-      const cbValue = member.cbBefore.getValue();
-
-      if (cbValue > 0) {
-        // Surplus: add to available pool
-        availableSurplus += cbValue;
-        allocations.push({
-          shipId: member.shipId,
-          cbBefore: member.cbBefore,
-          cbAfter: member.cbBefore, // Surplus ships keep their balance initially
-        });
-      } else if (cbValue < 0) {
-        // Deficit: try to cover with available surplus
-        const deficit = Math.abs(cbValue);
-        if (availableSurplus >= deficit) {
-          // Can fully cover deficit
-          availableSurplus -= deficit;
-          allocations.push({
-            shipId: member.shipId,
-            cbBefore: member.cbBefore,
-            cbAfter: ComplianceBalance.create(0), // Deficit fully covered
-          });
-        } else {
-          // Can partially cover deficit
-          const remainingDeficit = deficit - availableSurplus;
-          availableSurplus = 0;
-          allocations.push({
-            shipId: member.shipId,
-            cbBefore: member.cbBefore,
-            cbAfter: ComplianceBalance.create(-remainingDeficit), // Remaining deficit
-          });
-        }
+      const val = member.cbBefore.getValue();
+      if (val < 0) {
+        totalDeficitToCover += Math.abs(val);
+        deficitAndNeutralMembers.push(member);
+      } else if (val === 0) {
+        deficitAndNeutralMembers.push(member);
       } else {
-        // Zero balance: no change
+        surplusMembers.push(member);
+      }
+    }
+
+    // 2. Process Deficits and Neutrals
+    // Since we validated poolSum >= 0, we can always cover all deficits
+    for (const member of deficitAndNeutralMembers) {
+      allocations.push({
+        shipId: member.shipId,
+        cbBefore: member.cbBefore,
+        cbAfter: ComplianceBalance.create(0) // Deficits cleared, Neutrals stay 0
+      });
+    }
+
+    // 3. Deduct from Surplus members (Greedy: highest surplus pays first)
+    for (const member of surplusMembers) {
+      const currentSurplus = member.cbBefore.getValue();
+
+      if (totalDeficitToCover > 0) {
+        // Deduct from this ship
+        const contribution = Math.min(currentSurplus, totalDeficitToCover);
+        const remaining = currentSurplus - contribution;
+
         allocations.push({
           shipId: member.shipId,
           cbBefore: member.cbBefore,
-          cbAfter: member.cbBefore,
+          cbAfter: ComplianceBalance.create(remaining)
+        });
+
+        totalDeficitToCover -= contribution;
+      } else {
+        // No more deficit to cover, keep full surplus
+        allocations.push({
+          shipId: member.shipId,
+          cbBefore: member.cbBefore,
+          cbAfter: member.cbBefore
         });
       }
     }

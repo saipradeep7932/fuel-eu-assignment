@@ -36,8 +36,11 @@ export default function BankingTab() {
       // Also load banking records when CB is loaded
       await loadBankingRecords();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load compliance balance');
+      // Display backend error message directly (includes baseline ship messages)
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load compliance balance';
+      setError(errorMsg);
       setBalance(null);
+      setBankingRecords(null);
     } finally {
       setLoading(false);
     }
@@ -53,11 +56,11 @@ export default function BankingTab() {
       const data = await apiClient.getBankingRecords(shipId, parseInt(year));
       setBankingRecords(data);
     } catch (err) {
-      // Don't show error if records not found (404), just set to null
-      if (err instanceof Error && err.message.includes('404')) {
-        setBankingRecords(null);
+      // Treat 404 as valid empty state (no records exist yet)
+      if (err instanceof Error && (err as any).status === 404) {
+        setBankingRecords({ shipId, year: parseInt(year), records: [], totalBanked: 0 });
       } else {
-        // Only show error for other errors
+        // Only show error toast for actual errors (400, 500, etc.)
         console.error('Failed to load banking records:', err);
         setBankingRecords(null);
       }
@@ -216,7 +219,7 @@ export default function BankingTab() {
         </div>
 
         {/* Apply Banked */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow relative">
           <h3 className="text-lg font-medium mb-4">Apply Banked Surplus</h3>
           <div className="space-y-4">
             <div>
@@ -230,15 +233,32 @@ export default function BankingTab() {
                 disabled={!balance || balance.cb >= 0}
               />
             </div>
-            <button
-              onClick={handleApply}
-              disabled={loading || !balance || balance.cb >= 0}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-            >
-              Apply to Deficit
-            </button>
+
+            <div className="relative group">
+              <button
+                onClick={handleApply}
+                disabled={loading || !balance || balance.cb >= 0}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Apply to Deficit
+              </button>
+              {/* Tooltip for disabled state */}
+              {balance && balance.cb >= 0 && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  No deficit to offset
+                </div>
+              )}
+            </div>
+
             {balance && balance.cb >= 0 && (
               <p className="text-sm text-gray-500">Only deficits can have banked amounts applied</p>
+            )}
+
+            {/* Inline Error for Apply */}
+            {error && error.toLowerCase().includes('apply') && (
+              <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-200 mt-2">
+                {error}
+              </div>
             )}
           </div>
         </div>

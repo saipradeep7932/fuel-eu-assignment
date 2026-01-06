@@ -95,10 +95,20 @@ export class ComparisonController {
       }
 
       // Compare all routes with baseline
+      // Only include routes from the same year and vessel type as baseline
       const comparisons = [];
+      const baselineYear = baselineRoute.getYear();
+      const baselineVesselType = baselineRoute.getVesselType();
+
       for (const route of allRoutes) {
         // Skip comparing baseline with itself
         if (route.getRouteId().equals(baselineRoute.getRouteId())) {
+          continue;
+        }
+
+        // Only compare routes from the same year
+        // We do NOT filter by vessel type or fuel type as per spec
+        if (!route.getYear().equals(baselineYear)) {
           continue;
         }
 
@@ -117,7 +127,7 @@ export class ComparisonController {
             ...comparison,
           });
         } catch (error) {
-          // Skip routes that cannot be compared (different year/vessel type)
+          // Skip routes that cannot be compared for other reasons
           // Log but continue with other routes
           if (error instanceof Error && error.message.includes("cannot be compared")) {
             continue;

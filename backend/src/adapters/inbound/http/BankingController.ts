@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { ComplianceRepository } from "../../../core/ports/ComplianceRepository";
+import { RouteRepository } from "../../../core/ports/RouteRepository";
 import { GetComplianceBalance } from "../../../core/application/GetComplianceBalance";
 import { BankSurplus } from "../../../core/application/BankSurplus";
 import { ApplyBanked } from "../../../core/application/ApplyBanked";
 import { ComplianceBalance } from "../../../core/domain/value-objects/ComplianceBalance";
 import { Year } from "../../../core/domain/value-objects/Year";
+import { RouteId } from "../../../core/domain/value-objects/RouteId";
 
 /**
  * Banking Controller (Inbound HTTP Adapter)
@@ -25,7 +27,10 @@ export class BankingController {
   private readonly bankSurplus: BankSurplus;
   private readonly applyBanked: ApplyBanked;
 
-  constructor(private readonly complianceRepository: ComplianceRepository) {
+  constructor(
+    private readonly complianceRepository: ComplianceRepository,
+    private readonly routeRepository: RouteRepository
+  ) {
     this.getComplianceBalanceUseCase = new GetComplianceBalance(complianceRepository);
     this.bankSurplus = new BankSurplus(complianceRepository);
     this.applyBanked = new ApplyBanked(complianceRepository);
@@ -71,6 +76,25 @@ export class BankingController {
       }
 
       const yearVO = Year.create(year);
+
+      // Check if the route is a baseline route
+      // Baseline ships do not have a computed compliance balance
+      try {
+        const routeId = RouteId.create(shipId);
+        const route = await this.routeRepository.findById(routeId);
+        
+        if (route && route.getIsBaseline()) {
+          res.status(400).json({
+            error: "Invalid request",
+            message: "Compliance balance is not defined for baseline ships",
+          });
+          return;
+        }
+      } catch (error) {
+        // RouteId validation error - continue to check compliance balance
+        // (compliance balance check will return 404 if not found)
+      }
+
       const balance = await this.getComplianceBalanceUseCase.execute(shipId, yearVO);
 
       if (!balance) {

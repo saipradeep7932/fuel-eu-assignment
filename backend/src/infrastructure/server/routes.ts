@@ -19,7 +19,7 @@ export function setupRoutes(
   // Initialize controllers with dependencies
   const routesController = new RoutesController(routeRepository);
   const comparisonController = new ComparisonController(routeRepository);
-  const bankingController = new BankingController(complianceRepository);
+  const bankingController = new BankingController(complianceRepository, routeRepository);
   const poolingController = new PoolingController(complianceRepository);
 
   // Routes endpoints
@@ -51,8 +51,10 @@ export function setupRoutes(
     bankingController.bank(req, res).catch(next);
   });
   router.post("/banking/apply", (req, res, next) => {
-    bankingController.apply(req, res).catch(next);
-  });
+  console.log(">>> APPLY ROUTE HIT");
+  bankingController.apply(req, res).catch(next);
+});
+
 
   // Pooling endpoints
   router.post("/pools", (req, res, next) => {

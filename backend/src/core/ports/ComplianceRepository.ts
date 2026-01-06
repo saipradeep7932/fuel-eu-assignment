@@ -50,5 +50,26 @@ export interface ComplianceRepository {
     shipId: string,
     year: Year
   ): Promise<Array<{ amount: number; createdAt: Date }>>;
+
+  /**
+   * get total banked surplus for a ship (sum of all bank entries)
+   * @param shipId Ship identifier
+   * @returns Promise resolving to total banked amount
+   */
+  getTotalBanked(shipId: string): Promise<number>;
+
+  /**
+   * Save a banked entry (surplus banking operation)
+   * @param shipId Ship identifier
+   * @param year Year of banking
+   * @param amount Amount of GCO2eq banked
+   * @returns Promise that resolves when entry is saved
+   * @throws Error if insert fails
+   */
+  saveBankEntry(
+    shipId: string,
+    year: Year,
+    amount: ComplianceBalance
+  ): Promise<void>;
 }
 

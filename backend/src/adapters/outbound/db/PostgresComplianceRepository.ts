@@ -33,7 +33,7 @@ interface BankEntryRow {
  * Handles only persistence logic, no business logic.
  */
 export class PostgresComplianceRepository implements ComplianceRepository {
-  constructor(private readonly db: Pool | PoolClient) {}
+  constructor(private readonly db: Pool | PoolClient) { }
 
   /**
    * Save compliance balance for a ship in a given year
@@ -104,6 +104,45 @@ export class PostgresComplianceRepository implements ComplianceRepository {
       amount: Number(row.amount_gco2eq), // PostgreSQL NUMERIC is returned as string, must convert to number
       createdAt: row.created_at instanceof Date ? row.created_at : new Date(row.created_at),
     }));
+  }
+
+  /**
+   * Get total banked surplus for a ship
+   * Sums up all entries in bank_entries for the ship
+   */
+  async getTotalBanked(shipId: string): Promise<number> {
+    const result = await this.db.query<{ total: string | number | null }>(
+      "SELECT SUM(amount_gco2eq) as total FROM bank_entries WHERE ship_id = $1",
+      [shipId]
+    );
+
+    if (result.rows.length === 0 || result.rows[0].total === null) {
+      return 0;
+    }
+
+    return Number(result.rows[0].total);
+  }
+
+  /**
+   * Save a banked entry (surplus banking operation)
+   * Inserts into bank_entries table
+   */
+  async saveBankEntry(
+    shipId: string,
+    year: Year,
+    amount: ComplianceBalance
+  ): Promise<void> {
+    const yearValue = year.getValue();
+    const amountValue = amount.getValue();
+
+    const result = await this.db.query(
+      "INSERT INTO bank_entries (ship_id, year, amount_gco2eq) VALUES ($1, $2, $3)",
+      [shipId, yearValue, amountValue]
+    );
+
+    if (result.rowCount === 0) {
+      throw new Error("Failed to insert bank entry");
+    }
   }
 }
 

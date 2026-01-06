@@ -25,7 +25,7 @@ export class Route {
     private readonly distance: Distance,
     private readonly totalEmissions: TotalEmissions,
     private readonly isBaseline: boolean
-  ) {}
+  ) { }
 
   /**
    * Create a new Route instance
@@ -146,10 +146,7 @@ export class Route {
    * @returns true if routes can be compared
    */
   canCompareWith(otherRoute: Route): boolean {
-    return (
-      this.year.equals(otherRoute.year) &&
-      this.vesselType.equals(otherRoute.vesselType)
-    );
+    return this.year.equals(otherRoute.year);
   }
 
   // Getters

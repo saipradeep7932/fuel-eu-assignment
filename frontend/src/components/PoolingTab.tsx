@@ -163,7 +163,7 @@ export default function PoolingTab() {
           <h3 className="text-lg font-medium mb-4">Pool Result</h3>
           <div className="mb-4">
             <p className="text-sm text-gray-600">Pool Sum: <strong>{poolResult.poolSum.toFixed(4)} t CO₂e</strong></p>
-            <p className="text-sm text-gray-600">Valid: <strong>{poolResult.valid ? 'Yes' : 'No'}</strong></p>
+            <p className="text-sm text-gray-600">Valid: <strong>{poolResult.valid ? '✅ Yes' : '❌ No'}</strong></p>
           </div>
 
           <div className="overflow-x-auto">
@@ -171,6 +171,7 @@ export default function PoolingTab() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ship ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CB Before</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CB After</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Change</th>
@@ -179,18 +180,43 @@ export default function PoolingTab() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {poolResult.members.map((member, index) => {
                   const change = member.cbAfter - member.cbBefore;
+                  // Determine Role
+                  let role = 'Neutral';
+                  let roleColor = 'text-gray-500';
+
+                  if (member.cbBefore > 0 && change < 0) {
+                    role = 'Donor (Surplus)';
+                    roleColor = 'text-blue-600 font-medium';
+                  } else if (member.cbBefore < 0 && change > 0) {
+                    role = 'Receiver (Deficit)';
+                    roleColor = 'text-purple-600 font-medium';
+                  } else if (member.cbBefore > 0) {
+                    role = 'Surplus (Unused)';
+                    roleColor = 'text-green-600';
+                  } else if (member.cbBefore < 0) {
+                    role = 'Deficit (Covered)'; // If change == 0? Wait, if change > 0 it's covered.
+                    // If cbBefore < 0 and change == 0, it means it wasn't covered (impossible if valid pool?)
+                    // If pool is valid, deficits should be covered.
+                  }
+
                   return (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{member.shipId}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {member.cbBefore.toFixed(4)} t CO₂e
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${roleColor}`}>
+                        {role}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {member.cbBefore.toFixed(4)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                        {member.cbAfter.toFixed(4)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {member.cbAfter.toFixed(4)} t CO₂e
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={change >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {change >= 0 ? '+' : ''}{change.toFixed(4)} t CO₂e
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${change > 0 ? 'bg-green-100 text-green-800' :
+                            change < 0 ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-600'
+                          }`}>
+                          {change > 0 ? '+' : ''}{change.toFixed(4)}
                         </span>
                       </td>
                     </tr>

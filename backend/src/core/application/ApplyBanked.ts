@@ -15,7 +15,7 @@ import { Year } from "../domain/value-objects/Year";
  * This use case has side effects (persistence).
  */
 export class ApplyBanked {
-  constructor(private readonly complianceRepository: ComplianceRepository) {}
+  constructor(private readonly complianceRepository: ComplianceRepository) { }
 
   /**
    * Execute the use case
@@ -40,8 +40,26 @@ export class ApplyBanked {
       throw new Error(`Cannot apply amount ${amount} to compliance balance ${currentBalance.getValue()}`);
     }
 
+    // 1. Calculate total banked surplus
+    const totalBanked = await this.complianceRepository.getTotalBanked(shipId);
+
+    if (amount > totalBanked) {
+      throw new Error(
+        `Insufficient banked surplus. Available: ${totalBanked}, Requested: ${amount}`
+      );
+    }
+
+    // 2. Apply to compliance balance
     const newBalance = currentBalance.apply(amount);
     await this.complianceRepository.saveComplianceBalance(shipId, year, newBalance);
+
+    // 3. Deduct from bank (store negative entry)
+    // We use the year of application to trace usage
+    await this.complianceRepository.saveBankEntry(
+      shipId,
+      year,
+      ComplianceBalance.create(-amount)
+    );
 
     return newBalance;
   }

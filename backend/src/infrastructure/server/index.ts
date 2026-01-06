@@ -8,7 +8,16 @@ import { getPool } from "../db/pgClient";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+// JSON body parsing: only for POST, PUT, PATCH, DELETE
+// GET requests should never have a body and should not trigger JSON parsing
+app.use(express.json({
+  // Only parse JSON for these HTTP methods
+  // GET requests are excluded - they should not have a body
+  skip: (req) => {
+    return req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+  }
+}));
 
 // Health check
 app.get("/health", (_req, res) => {

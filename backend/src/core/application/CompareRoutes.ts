@@ -41,7 +41,7 @@ export class CompareRoutes {
     // Validate that routes can be compared
     if (!comparisonRoute.canCompareWith(baselineRoute)) {
       throw new Error(
-        "Routes cannot be compared: must have same year and vessel type"
+        "Routes cannot be compared: must have same year"
       );
     }
 

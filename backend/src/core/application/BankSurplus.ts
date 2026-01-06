@@ -32,7 +32,7 @@ export class BankSurplus {
       throw new Error("Can only bank positive compliance balance (surplus)");
     }
 
-    await this.complianceRepository.saveComplianceBalance(shipId, year, balance);
+    await this.complianceRepository.saveBankEntry(shipId, year, balance);
   }
 }
 
